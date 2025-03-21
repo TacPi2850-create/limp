@@ -19,45 +19,66 @@ def generate_schedule():
 # Creiamo il calendario delle pulizie
 df = generate_schedule()
 
-# UI Streamlit
-st.title("📆 Calendario Pulizie Domenicali")
+# Stile CSS migliorato per layout, sfondo e contrasto
+st.markdown("""
+    <style>
+        body, .stApp { background-color: #D6EAF8; }
+        .main { background-color: #D6EAF8; }
+        .sidebar .sidebar-content { background-color: #D6EAF8; }
+        h1, h2, h3, h4, h5, h6, label { color: #0D47A1 !important; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; background-color: #000000; border: 2px solid #FFFFFF; }
+        th, td { text-align: center; padding: 12px; font-size: 18px; border: 2px solid #FFFFFF; color: white; background-color: #222; }
+        th { background-color: #1F618D; color: white; }
+        .sunday { background-color: #1C1C1C !important; font-weight: bold; border: 2px solid #FFFFFF; }
+        .task-person-jl1 { color: #FFD700; font-weight: bold; }
+        .task-person-jl2 { color: #00FA9A; font-weight: bold; }
+        .stSelectbox label, .stDateInput label { color: #0D47A1 !important; font-weight: bold; }
+        .stTitle { color: #0D47A1 !important; }
+    </style>
+""", unsafe_allow_html=True)
 
-# Selezione del mese e anno
-today = datetime.today()
-current_month = today.month
-current_year = today.year
+# UI Streamlit con layout a colonne
+st.markdown("<h1 style='color: #0D47A1;'>📆 Calendario Pulizie Domenicali</h1>", unsafe_allow_html=True)
 
-selected_year = st.selectbox("📅 Seleziona l'anno", [2025, 2026], index=0)
-selected_month = st.selectbox("🗓️ Seleziona il mese", list(range(1, 13)), index=current_month-1)
+col1, col2 = st.columns([1, 2])
+
+with col1:
+    selected_year = st.selectbox("📅 Seleziona l'anno", [2025, 2026], index=0)
+    selected_month = st.selectbox("🗓️ Seleziona il mese", list(range(1, 13)), index=datetime.today().month - 1)
+    selected_date = st.date_input("📅 Seleziona una data per vedere i dettagli delle pulizie", value=datetime.today())
+    daily_tasks = df[df["Data"] == selected_date]
+    if not daily_tasks.empty:
+        st.write("### Dettagli Pulizie per:", selected_date.strftime('%d %B %Y'))
+        st.table(daily_tasks)
+    else:
+        st.write("Un lugar limpio es un lugar feliz! 😊")
 
 # Generazione del calendario mensile
 month_days = calendar.monthcalendar(selected_year, selected_month)
 
-# Creiamo la tabella calendario migliorata
-styled_table = "<style>th, td { text-align: center; padding: 8px; font-size: 16px; }</style>"
-styled_table += "<table border='1' style='width:100%; border-collapse: collapse;'>"
-styled_table += "<tr><th>Lun</th><th>Mar</th><th>Mer</th><th>Gio</th><th>Ven</th><th>Sab</th><th style='color: red;'>Dom</th></tr>"
+# Creazione tabella calendario
+calendar_html = "<table>"
+calendar_html += "<tr><th>Lun</th><th>Mar</th><th>Mer</th><th>Gio</th><th>Ven</th><th>Sab</th><th style='color: red;'>Dom</th></tr>"
 
 for week in month_days:
-    styled_table += "<tr>"
+    calendar_html += "<tr>"
     for day in week:
         if day == 0:
-            styled_table += "<td></td>"  # Giorno vuoto
+            calendar_html += "<td></td>"  # Giorno vuoto
         else:
             date = datetime(selected_year, selected_month, day).date()
             task = df[df["Data"] == date]
+            cell_content = f"<b>{day}</b><br>"
+            
             if not task.empty:
-                text = f"<b style='color: #FF6347'>{task.iloc[0]['Persona']}</b> - {task.iloc[0]['Mansione']}<br>"
-                text += f"<b style='color: #4682B4'>{task.iloc[1]['Persona']}</b> - {task.iloc[1]['Mansione']}"
-                styled_table += f"<td style='background-color: #F0F8FF; border: 2px solid black;'>{day}<br>{text}</td>"
+                cell_content += f"<span class='task-person-jl1'>{task.iloc[0]['Persona']}</span> {task.iloc[0]['Mansione']}<br>"
+                cell_content += f"<span class='task-person-jl2'>{task.iloc[1]['Persona']}</span> {task.iloc[1]['Mansione']}"
+                calendar_html += f"<td class='sunday'>{cell_content}</td>"
             else:
-                styled_table += f"<td>{day}</td>"
-    styled_table += "</tr>"
+                calendar_html += f"<td>{cell_content}</td>"
+    calendar_html += "</tr>"
+calendar_html += "</table>"
 
-styled_table += "</table>"
-
-# Mostriamo la tabella con il calendario
-st.markdown(styled_table, unsafe_allow_html=True)
-
-st.write("📅 L'app mostra le pulizie per ogni domenica dell'anno. Puoi navigare tra i mesi per vedere le assegnazioni.")
-
+# Mostriamo la tabella calendario nella seconda colonna
+with col2:
+    st.markdown(calendar_html, unsafe_allow_html=True)
